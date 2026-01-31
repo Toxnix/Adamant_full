@@ -1,0 +1,28 @@
+{ 
+    "comment": "to use the e-mail notification feature, please adjust the keywords' values accordingly and change this file's name to 'jobrequest-conf.json'",
+    "confList": [
+    {
+        "configurationNo": 1,
+        "completeSchemaTitle": "title of the complete schema",
+        "requestSchemaTitle": "title of the request schema",
+        "smtp": "your institution's SMTP (Simple Mail Transfer Protocol)",
+        "from": "sender's custom email address",
+        "submitButtonText":"text to be displayed on the submit button (front-end). E.g., Submit SEM Job Request",
+        "requesterEmailKeyword": "the keyword in the schema that contains the requester's email address",
+        "operatorNameKeyword": "the keyword in the schema that contains the operator's name",
+        "operators": {
+            "operator_name_1": "operator_1@email.com",
+            "operator_name_2": "operator_2@email.com",
+            "operator_name_3": "operator_3@email.com"
+        },
+        "responsibleOperatorName":"responsible person of this workflow",
+        "responsibleOperatorEmail":"email address of the responsible person",
+        "confirmationEmailSubject": "email subject for confirmation email (for requester). Example: SEM Job Request confirmation",
+        "confirmationHeaderText": "confirmation header text must be within div tags. Example: <div>This is a confirmation email for your SEM Request with the following details:</div>\n",
+        "requestReceivedEmailSubject": "email subject for receiving request (for operator). Example: New SEM Job Request",
+        "requestReceivedHeaderText": "received header text must be within div tags. Example: <div>You've just got a new SEM job request with the following details: </div>\n",
+        "requestAcceptedSubject": "email subject for when the request is accepted (for requesster). Example: SEM job request accepted",
+        "requestAcceptedHeaderText": "request accepted header text must be within div tags. Example: <div>Your request has been accepted and currently being investigated.</div>\n"
+    }
+    ]
+}
