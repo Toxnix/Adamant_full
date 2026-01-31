@@ -78,9 +78,16 @@ echo "npm version: $(npm -v)"
 
 echo "Setting up MariaDB..."
 # Load environment variables from .env file if it exists
-if [ -f "$ROOT_DIR/.env" ]; then
+ENV_FILE=""
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    ENV_FILE="$SCRIPT_DIR/.env"
+elif [ -f "$ROOT_DIR/.env" ]; then
+    ENV_FILE="$ROOT_DIR/.env"
+fi
+
+if [ -n "$ENV_FILE" ]; then
     set -a
-    source "$ROOT_DIR/.env"
+    source "$ENV_FILE"
     set +a
 else
     echo "Warning: .env file not found. Using default values."
