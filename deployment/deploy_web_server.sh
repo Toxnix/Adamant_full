@@ -5,13 +5,28 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_URL=${REPO_URL:-git@github.com:Toxnix/Adamant_full.git}
 REPO_DIR=${REPO_DIR:-Adamant_full}
+REPO_BRANCH=${REPO_BRANCH:-main}
 ROOT_DIR="$SCRIPT_DIR/$REPO_DIR"
 
 echo "Cloning the Adamant repository..."
 if [ ! -d "$ROOT_DIR/.git" ]; then
-    git clone "$REPO_URL" "$ROOT_DIR"
+    git clone --branch "$REPO_BRANCH" "$REPO_URL" "$ROOT_DIR"
 else
     echo "Repository already exists at $ROOT_DIR"
+    UPDATE_REPO=1
+    for arg in "$@"; do
+        case "$arg" in
+            --no-pull|--no-update)
+                UPDATE_REPO=0
+                ;;
+        esac
+    done
+    if [ "$UPDATE_REPO" = "1" ]; then
+        echo "Updating repository..."
+        git -C "$ROOT_DIR" fetch --all --prune
+        git -C "$ROOT_DIR" checkout "$REPO_BRANCH"
+        git -C "$ROOT_DIR" pull --ff-only
+    fi
 fi
 
 if [ ! -f "$ROOT_DIR/package.json" ] || [ ! -d "$ROOT_DIR/backend" ]; then

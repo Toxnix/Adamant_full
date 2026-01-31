@@ -1,37 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
-
 <svg
    width="195.1869mm"
    height="48.121658mm"
    viewBox="0 0 195.18691 48.121658"
    version="1.1"
    id="svg5"
-   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
-   sodipodi:docname="adamant-header-3.svg"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <sodipodi:namedview
-     id="namedview7"
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:document-units="mm"
-     showgrid="false"
-     inkscape:zoom="0.72337262"
-     inkscape:cx="324.17594"
-     inkscape:cy="-50.458089"
-     inkscape:window-width="2400"
-     inkscape:window-height="1271"
-     inkscape:window-x="2391"
-     inkscape:window-y="-9"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+   xmlns="http://www.w3.org/2000/svg">
   <defs
      id="defs2">
     <clipPath
@@ -342,12 +317,9 @@
     </clipPath>
   </defs>
   <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
      id="layer1"
      transform="translate(-54.864533,-102.43539)">
     <g
-       inkscape:label="Layer 1"
        id="layer1-0"
        transform="translate(79.328517,48.748596)">
       <rect
@@ -359,7 +331,6 @@
          y="53.686794" />
       <g
          id="g15"
-         inkscape:label="adamant-header-image"
          transform="matrix(0.35277777,0,0,-0.35277777,-79.321583,236.9392)">
         <g
            id="g17">
@@ -410,7 +381,6 @@
                id="text119"><tspan
                  x="0 57.888 108 193.056 243.168 299.23199"
                  y="0"
-                 sodipodi:role="line"
                  id="tspan117">damant</tspan></text>
           </g>
         </g>
@@ -427,7 +397,6 @@
                y="-393.5"><tspan
                  x="324.04999 333.51297 337.23355 342.7934 350.43115 360.98923 371.75793 375.61893 381.67017 388.26895 396.38409 403.83932 416.27875 423.60764 427.46863 432.27032 440.65219 445.84698 458.28644 462.14743 467.34222 474.75534 482.95471 491.42084 498.87607 504.07086 511.46997 516.66479 520.58191 527.91083 536.06805 544.57629 548.43726 555.89252 564.35864 568.07922 573.14771 581.52954"
                  y="-393.5"
-                 sodipodi:role="line"
                  id="tspan129">A JSON schema form renderer and editor</tspan></text>
           </g>
         </g>
@@ -435,7 +404,6 @@
     </g>
     <g
        id="g1457"
-       inkscape:label="newlogo"
        transform="matrix(0.28329454,0,0,-0.32735584,160.16775,274.51165)">
       <g
          id="g1459">
@@ -462,7 +430,6 @@
              id="text1483"><tspan
                x="0 38.531921 102.36492"
                y="0"
-               sodipodi:role="line"
                id="tspan1481">{ }</tspan></text>
         </g>
       </g>
