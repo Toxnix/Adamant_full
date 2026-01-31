@@ -215,10 +215,8 @@ def get_schemas():
     filelist = list(Path('./schemas').glob('**/*.json'))
     for i in range(0, len(filelist)):
         file = filelist[i]
-        file = open(str(file), 'r', encoding='utf-8')
-        filename = str(file.name).replace("schemas\\", "")
-        filename = filename.replace("schemas/", "")  # for linux, maybe
-        content = file.read()
+        content = Path(file).read_text(encoding='utf-8')
+        filename = Path(file).relative_to(Path('./schemas')).as_posix()
         list_of_schemas["schema"].append(content)
         list_of_schemas["schemaName"].append(filename)
     return list_of_schemas

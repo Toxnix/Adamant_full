@@ -7,6 +7,12 @@ REPO_URL=${REPO_URL:-git@github.com:Toxnix/Adamant_full.git}
 REPO_DIR=${REPO_DIR:-Adamant_full}
 REPO_BRANCH=${REPO_BRANCH:-main}
 ROOT_DIR="$SCRIPT_DIR/$REPO_DIR"
+SERVICE_USER=${SERVICE_USER:-${SUDO_USER:-$USER}}
+if command -v getent >/dev/null 2>&1; then
+    SERVICE_HOME="$(getent passwd "$SERVICE_USER" | cut -d: -f6)"
+fi
+SERVICE_HOME=${SERVICE_HOME:-/home/$SERVICE_USER}
+SCRIPTS_DIR=${SCRIPTS_DIR:-$SERVICE_HOME/scripts}
 
 echo "Cloning the Adamant repository..."
 if [ ! -d "$ROOT_DIR/.git" ]; then
@@ -83,6 +89,8 @@ else
     DB_USER=${DB_USER:-adamant_user}
     DB_PASSWORD=${DB_PASSWORD:-adamant_password}
 fi
+SSL_EMAIL=${SSL_EMAIL:-admin@example.com}
+SSL_DOMAIN=${SSL_DOMAIN:-metadata.empi-rf.de}
 
 # Write DB config for backend
 cat > "$ROOT_DIR/backend/conf/db_config.json" <<EOF
@@ -146,7 +154,7 @@ Description=Adamant Flask Backend via Gunicorn
 After=network.target
 
 [Service]
-User=$USER
+User=$SERVICE_USER
 Group=www-data
 WorkingDirectory=$(pwd)
 Environment="PATH=$(pwd)/venv/bin"
@@ -165,54 +173,65 @@ sudo systemctl start adamant-backend
 
 echo "Setting up Node frontend..."
 cd "$ROOT_DIR"
-# Work around React 18 + Material-UI v4 peer dependency conflicts.
-NPM_INSTALL_FLAGS=${NPM_INSTALL_FLAGS:---legacy-peer-deps}
+# Optional: override npm install flags via NPM_INSTALL_FLAGS env var.
+NPM_INSTALL_FLAGS=${NPM_INSTALL_FLAGS:-}
 npm install $NPM_INSTALL_FLAGS
 npm run build
 
 echo "Copying adamant build to Nginx root..."
-sudo cp -r "$ROOT_DIR/build" /var/www/html/
+sudo rm -rf /var/www/html/build
+sudo cp -r "$ROOT_DIR/dist" /var/www/html/build
 
 cd "$ROOT_DIR/db-ui"
 npm install $NPM_INSTALL_FLAGS
 npm run build
 
 echo "Copying db-ui build to Nginx root..."
+sudo rm -rf /var/www/html/build/db-ui
 sudo mkdir -p /var/www/html/build/db-ui
-sudo cp -r "$ROOT_DIR/db-ui/build/"* /var/www/html/build/db-ui/
+sudo cp -r "$ROOT_DIR/db-ui/dist/"* /var/www/html/build/db-ui/
 
 echo "Setting up Nginx..."
 cd "$ROOT_DIR"
-sudo cp "$ROOT_DIR/deployment/nginx.default.prod.conf" /etc/nginx/conf.d/adamant.conf
+if [ -z "$SSL_DOMAIN" ]; then
+    echo "Warning: SSL_DOMAIN is empty; using '_' as a catch-all server_name."
+    SSL_DOMAIN="_"
+fi
+NGINX_CONF_SRC="$ROOT_DIR/deployment/nginx.default.prod.conf"
+NGINX_CONF_TMP="$(mktemp)"
+sed "s/__SSL_DOMAIN__/${SSL_DOMAIN}/g" "$NGINX_CONF_SRC" > "$NGINX_CONF_TMP"
+sudo cp "$NGINX_CONF_TMP" /etc/nginx/conf.d/adamant.conf
+rm -f "$NGINX_CONF_TMP"
 sudo systemctl restart nginx
 
-echo "Copying Bash scripts to /home/user/scripts..."
-mkdir -p /home/user/scripts
-cp "$ROOT_DIR/bin/insert_data2db.sh" /home/user/scripts/
-chmod +x /home/user/scripts/insert_data2db.sh
+echo "Copying Bash scripts to ${SCRIPTS_DIR}..."
+mkdir -p "$SCRIPTS_DIR"
+cp "$ROOT_DIR/bin/insert_data2db.sh" "$SCRIPTS_DIR/"
+chmod +x "$SCRIPTS_DIR/insert_data2db.sh"
 
-echo "Copying .env file to /home/user/scripts/..."
+echo "Copying .env file to ${SCRIPTS_DIR}/..."
 if [ -f "$ROOT_DIR/.env" ]; then
-    cp "$ROOT_DIR/.env" /home/user/scripts/.env
+    cp "$ROOT_DIR/.env" "$SCRIPTS_DIR/.env"
     echo ".env file copied successfully."
 else
-    echo "Warning: .env file not found. Please create and configure it manually in /home/user/scripts/.env"
+    echo "Warning: .env file not found. Please create and configure it manually in ${SCRIPTS_DIR}/.env"
 fi
 
 echo "Obtaining SSL with Certbot..."
 # Use SSL configuration from .env file
-SSL_EMAIL=${SSL_EMAIL:-admin@example.com}
-SSL_DOMAIN=${SSL_DOMAIN:-metadata.empi-rf.de}
-
 if [ -z "$SSL_EMAIL" ] || [ -z "$SSL_DOMAIN" ]; then
     echo "Warning: SSL_EMAIL or SSL_DOMAIN not set in .env file. Using defaults."
 fi
 
-sudo certbot --nginx \
-    --non-interactive \
-    --agree-tos \
-    --email "${SSL_EMAIL}" \
-    -d "${SSL_DOMAIN}"
+if [ "$SSL_DOMAIN" = "_" ]; then
+    echo "Skipping certbot: SSL_DOMAIN is empty."
+else
+    sudo certbot --nginx \
+        --non-interactive \
+        --agree-tos \
+        --email "${SSL_EMAIL}" \
+        -d "${SSL_DOMAIN}"
+fi
 
 echo "Setting up cron jobs..."
 bash "$ROOT_DIR/deployment/setup_cron_web_server.sh"
