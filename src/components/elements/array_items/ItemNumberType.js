@@ -6,7 +6,6 @@ import { IconButton } from '@mui/material';
 import { Typography } from '@mui/material';
 import { FormContext } from '../../../FormContext';
 import getUnit from '../../utils/getUnit';
-import { MathComponent } from 'mathjax-react'
 import { InputAdornment } from '@mui/material';
 
 
@@ -28,10 +27,8 @@ const ItemNumberType = ({ oDataInputItems, oSetDataInputItems, arrayFieldKey, wi
     const { handleConvertedDataInput } = useContext(FormContext);
     const [inputValue, setInputValue] = useState(dataInputItems[index])
 
-    let unit = getUnit(field_label)
-    if (unit[0] === '%') {
-        unit = "\\" + unit
-    }
+    const unitMatches = getUnit(field_label)
+    const unitText = Array.isArray(unitMatches) ? unitMatches[0] : unitMatches || ""
 
 
     // handle input on change for number a.k.a signed float
@@ -99,7 +96,7 @@ const ItemNumberType = ({ oDataInputItems, oSetDataInputItems, arrayFieldKey, wi
             </div> : null}
             <div style={{ paddingTop: "10px", paddingBottom: "10px", display: 'inline-flex', width: '100%' }}>
                 <TextField size='small' onBlur={() => handleInputOnBlur()} onChange={e => handleInputOnChange(e)} value={inputValue} fullWidth={true} className={classes.heading} id={field_key} variant="outlined" InputProps={{
-                    endAdornment: <InputAdornment position="start">{<MathComponent tex={String.raw`\\${unit}`} />}</InputAdornment>,
+                    endAdornment: unitText ? <InputAdornment position="start"><span>{unitText}</span></InputAdornment> : null,
                 }} />
                 {edit ? <>
                     <IconButton onClick={() => handleDeleteArrayItem(index)} style={{ marginLeft: "5px", marginTop: "5px", height: "45px" }}><DeleteIcon fontSize="small" color="secondary" /></IconButton></> : null}

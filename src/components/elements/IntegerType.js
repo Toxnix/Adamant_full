@@ -9,7 +9,6 @@ import { FormContext } from '../../FormContext';
 import deleteKey from '../utils/deleteKey';
 import getUnit from '../utils/getUnit';
 import { InputAdornment } from '@mui/material';
-import { MathComponent } from 'mathjax-react'
 import { Tooltip } from '@mui/material';
 import getValue from '../utils/getValue';
 import set from 'set-value';
@@ -61,10 +60,8 @@ const IntegerType = ({ adamant_error_description, adamant_field_error, minimum, 
     pathFormData = pathFormData.filter(e => e)
     pathFormData = pathFormData.join(".")
 
-    let unit = getUnit(field_label)
-    if (unit[0] === '%') {
-        unit = "\\" + unit
-    }
+    const unitMatches = getUnit(field_label)
+    const unitText = Array.isArray(unitMatches) ? unitMatches[0] : unitMatches || ""
 
     var required
     if (field_required === undefined) {
@@ -312,7 +309,7 @@ const IntegerType = ({ adamant_error_description, adamant_field_error, minimum, 
                             }
                         }
                     }} error={inputError} onBlur={() => handleInputOnBlur()} onChange={e => handleInputOnChange(e)} value={inputValue === undefined ? defaultValue : inputValue} required={required} fullWidth={true} className={classes.heading} id={field_key} label={field_label} variant="outlined" InputProps={{
-                        endAdornment: <InputAdornment position="start">{<MathComponent tex={String.raw`\\${unit}`} />}</InputAdornment>,
+                        endAdornment: unitText ? <InputAdornment position="start"><span>{unitText}</span></InputAdornment> : null,
                     }} helperText={descriptionText} />
                     {edit ? <>
                         <Tooltip placement="top" title={`Edit field "${field_label}"`}>
@@ -372,7 +369,7 @@ const IntegerType = ({ adamant_error_description, adamant_field_error, minimum, 
                         label={field_label}
                         variant="outlined"
                         InputProps={{
-                            endAdornment: <InputAdornment position="start">{<MathComponent tex={String.raw`\\${unit}`} />}</InputAdornment>,
+                            endAdornment: unitText ? <InputAdornment position="start"><span>{unitText}</span></InputAdornment> : null,
                         }}
                         SelectProps={{
                             native: true,

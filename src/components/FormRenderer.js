@@ -11,7 +11,7 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { FormContext } from '../FormContext';
 import DragHandleIcon from "@mui/icons-material/DragIndicator";
 import UploadDataIcon from '@mui/icons-material/UploadFile';
-import { ReactComponent as JsonIcon } from '../assets/json-file-svgrepo-com.svg'
+import JsonIcon from "../assets/json-file-svgrepo-com.svg";
 import RevertIvon from "@mui/icons-material/History";
 import EditSchemaHeader from "./EditSchemaHeader";
 import JSONSchemaViewerDialog from "./JSONSchemaViewerDialog";
@@ -132,7 +132,9 @@ const FormRenderer = ({ setSchemaSpecification, revertAllChanges, schema, edit, 
             <div style={{ paddingTop: "10px", paddingBottom: "10px", display: 'inline-flex', width: '100%' }}>
                 <Typography className={classes.heading} style={{ width: "100%" }}>{title}</Typography>
                 <Tooltip placement="top" title="View JSON Schema for this form">
-                    <Button onClick={() => setOpenSchemaViewer(true)} style={{ marginLeft: "5px" }}><JsonIcon style={{ height: "22px" }} /></Button>
+                    <Button onClick={() => setOpenSchemaViewer(true)} style={{ marginLeft: "5px" }}>
+                        <img src={JsonIcon} alt="JSON" style={{ height: "22px" }} />
+                    </Button>
                 </Tooltip>
                 <Tooltip placement="top" title="Upload input data for this form">
                     <Button style={{ marginLeft: "5px" }}{...getRootProps()}>

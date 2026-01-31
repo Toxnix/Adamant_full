@@ -1,8 +1,8 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter as Router } from "react-router-dom";
-import { Provider } from 'react-redux';
-import store from './redux/store';
+import { Provider } from "react-redux";
+import store from "./redux/store";
 //import { HashRouter as Router } from "react-router-dom";
 import App from "./App";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -17,9 +17,8 @@ root.render(
       <CssBaseline />
       <App />
     </Router>
-  </Provider>,
+  </Provider>
 );
-
 
 //use this for strict mode, however it always throws the findDOMNode warning
 /*root.render(
