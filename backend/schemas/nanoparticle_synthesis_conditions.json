@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "nanoparticle_synthesis_conditions",
+  "title": "Synthesis Conditions for Nanoparticle Spray Flame Reactor",
+  "description": "This dataset captures the experimental conditions for the synthesis of nanoparticles in a spray flame reactor.",
+  "type": "object",
+  "properties": {
+    "FileTypeIdentifier": {
+      "title": "FileTypeIdentifier",
+      "description": "To allow crawlers to identify JSON files",
+      "type": "string",
+      "default": "This is a EMPI-RF metadata File. Do not change this for crawler identification",
+      "enum": [
+        "This is a EMPI-RF metadata File. Do not change this for crawler identification"
+      ]
+    },
+    "Identifier": {
+      "title": "Identifier",
+      "description": "Unique identifier for the dataset",
+      "type": "string"
+    },
+    "SampleID": {
+      "title": "SampleID",
+      "description": "Unique identifier for the analyzed sample",
+      "type": "string",
+      "default": "FexOy-0001-BFR"
+    },
+    "Creator": {
+      "title": "Creator",
+      "description": "The name of the primary researcher",
+      "type": "string"
+    },
+    "ORCID": {
+      "title": "ORCID",
+      "description": "ID of the primary researcher",
+      "type": "string"
+    },
+    "Date": {
+      "title": "Date",
+      "description": "The date when the experiment started in ISO 8601",
+      "type": "string",
+      "default": "2025-06-08"
+    },
+    "Time": {
+      "title": "Time",
+      "description": "Time when the synthesis started in ISO 8601-1:2019",
+      "type": "string"
+    },
+    "ReactorType": {
+      "title": "ReactorType",
+      "description": "Type of reactor used (e.g., spray flame reactor)",
+      "type": "string",
+      "default": "Spray Flame Reactor"
+    },
+    "PrecursorSolution": {
+      "title": "PrecursorSolution",
+      "description": "Chemical composition of the precursor solution (e.g., metal salts, solvents)",
+      "type": "string"
+    },
+    "PrecursorConcentration": {
+      "title": "PrecursorConcentration",
+      "description": "Concentration of the precursor in the solution in mol/L",
+      "type": "number"
+    },
+    "SprayFlowRate": {
+      "title": "SprayFlowRate",
+      "description": "Flow rate of the precursor spray in mL/min",
+      "type": "number"
+    },
+    "CarrierGas": {
+      "title": "CarrierGas",
+      "description": "Type of carrier gas used (e.g., nitrogen, air, argon)",
+      "type": "string",
+      "enum": [
+        "nitrogen",
+        "air",
+        "argon",
+        "helium"
+      ]
+    },
+    "CarrierGasFlowRate": {
+      "title": "CarrierGasFlowRate",
+      "description": "Flow rate of the carrier gas in L/min",
+      "type": "number"
+    },
+    "FlameTemperature": {
+      "title": "FlameTemperature",
+      "description": "Temperature of the flame in \u00b0C",
+      "type": "number"
+    },
+    "CombustionEquivalenceRatio": {
+      "title": "CombustionEquivalenceRatio",
+      "description": "Equivalence ratio of the combustion process",
+      "type": "number"
+    },
+    "SchemaID": {
+      "title": "SchemaID",
+      "description": "Unique identifier for the schema",
+      "type": "string",
+      "enum": [
+        "nanoparticle_synthesis_conditions"
+      ]
+    }
+  },
+  "required": [
+    "Identifier",
+    "SampleID",
+    "Date",
+    "Time",
+    "ReactorType",
+    "PrecursorSolution",
+    "PrecursorConcentration",
+    "SprayFlowRate",
+    "CarrierGas",
+    "CarrierGasFlowRate",
+    "FlameTemperature",
+    "CombustionEquivalenceRatio",
+    "SchemaID",
+    "FileTypeIdentifier"
+  ]
+}

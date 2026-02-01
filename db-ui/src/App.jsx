@@ -44,7 +44,11 @@ const App = () => {
         sx={{
           flexGrow: 1,
           p: 3,
-          overflow: "auto",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          minWidth: 0,
         }}
       >
         {renderPage()}

@@ -1,4 +1,5 @@
 import getValue from "./getValue";
+import set from "set-value";
 
 // delete key and value given path
 const deleteKey = (json, path) => {
@@ -13,9 +14,6 @@ const deleteKey = (json, path) => {
         deleteIndex = deleteIndex.at(-1)
 
         elementValue.splice(parseInt(deleteIndex), 1)
-
-        const set = require("set-value")
-
         set(jsonData, newPath, elementValue)
 
         return jsonData;
@@ -24,9 +22,6 @@ const deleteKey = (json, path) => {
         deleteIndex = deleteIndex.at(-1)
 
         delete elementValue[deleteIndex]
-
-        const set = require("set-value")
-
         set(jsonData, newPath, elementValue)
 
         return jsonData;

@@ -18,6 +18,7 @@ import getValue from './utils/getValue';
 import checkIfFieldIDExist from './utils/checkIfFieldIDExist';
 import { IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import set from "set-value";
 
 
 const AddElement = ({ enumerated, field_enumerate, field_required, defaultSchema, path, openDialog, setOpenDialog, UISchema, schemaTitle }) => {
@@ -81,8 +82,6 @@ const AddElement = ({ enumerated, field_enumerate, field_required, defaultSchema
         }
 
         if (path !== undefined) {
-            const set = require("set-value");
-
             let properties = getValue(convertedSchema, path)["properties"]
             properties.push(tempUISchema)
             set(convertedSchema, path + ".properties", properties)
@@ -107,7 +106,6 @@ const AddElement = ({ enumerated, field_enumerate, field_required, defaultSchema
             updateParent(newConvertedSchema)
             setOpenDialog(false)
         } else {
-            const set = require("set-value");
             let properties = convertedSchema["properties"]
             properties.push(tempUISchema)
             convertedSchema["properties"] = properties

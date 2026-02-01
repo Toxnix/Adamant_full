@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import $ from "jquery";
 //import { makeStyles } from "@mui/styles";
 import { useDropzone } from "react-dropzone";
 import { useHistory } from 'react-router-dom';
@@ -114,6 +115,16 @@ const AdamantMain = ({ onLogout }) => {
   const [setSubmitText] = useState("Submit Job Request");
   const [browseExpirementsMode, setBrowseExpirementsMode] = useState(false);
   const dispatch = useDispatch();
+  const dbUiUrl =
+    window.location.port === "3000"
+      ? "http://localhost:3001/db-ui/"
+      : "/db-ui/";
+  useEffect(() => {
+    document.body.style.overflow = browseExpirementsMode ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [browseExpirementsMode]);
   // for dropdown buttons
   const [setAnchorEl] = useState(null);
 
@@ -135,7 +146,6 @@ const AdamantMain = ({ onLogout }) => {
 
   // check if the front-end is connected to backend at all
   useEffect(() => {
-    let $ = require("jquery");
     $.ajax({
       type: "GET",
       url: "/api/check_mode",
@@ -199,7 +209,6 @@ const AdamantMain = ({ onLogout }) => {
   useEffect(() => {
     // if online mode then get available schemas from server
     if (onlineMode === true) {
-      let $ = require("jquery");
       $.ajax({
         type: "GET",
         url: "/api/get_schemas",
@@ -1032,26 +1041,39 @@ const AdamantMain = ({ onLogout }) => {
   };
 
   return (
-    <>
-      <FormContext.Provider
-        value={{
-          loadedFiles,
-          handleRemoveFile,
-          handleLoadedFiles,
-          updateParent,
-          convertedSchema,
-          updateFormDataId,
-          handleDataDelete,
-          handleConvertedDataInput,
-          SEMSelectedDevice,
-          schemaSpecification,
-          setSchemaSpecification,
-          setSEMSelectedDevice,
-          implementedFieldTypes,
-          handleCheckIDexistence,
+    <FormContext.Provider
+      value={{
+        loadedFiles,
+        handleRemoveFile,
+        handleLoadedFiles,
+        updateParent,
+        convertedSchema,
+        updateFormDataId,
+        handleDataDelete,
+        handleConvertedDataInput,
+        SEMSelectedDevice,
+        schemaSpecification,
+        setSchemaSpecification,
+        setSEMSelectedDevice,
+        implementedFieldTypes,
+        handleCheckIDexistence,
+      }}
+    >
+      <div
+        style={{
+          display: browseExpirementsMode ? "flex" : "block",
+          flexDirection: browseExpirementsMode ? "column" : undefined,
+          height: browseExpirementsMode ? "100vh" : undefined,
+          minHeight: browseExpirementsMode ? 0 : undefined,
+          minWidth: browseExpirementsMode ? 0 : undefined,
         }}
       >
-        <div style={{ paddingBottom: "5px" }}>
+        <div
+          style={{
+            paddingBottom: "5px",
+            flex: browseExpirementsMode ? "0 0 auto" : undefined,
+          }}
+        >
           <img
             style={{ height: "100px", borderRadius: "2px", marginRight: "40px"}}
             alt="header"
@@ -1184,13 +1206,15 @@ const AdamantMain = ({ onLogout }) => {
           ) : null}
         </div>
         {browseExpirementsMode && (
-        <iframe
-          src="/db-ui/index.html"
-          style={{ width: "100%", height: "100vh", border: "none" }}
-          title="Expirements DB User Interface"
-        ></iframe>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <iframe
+              src={dbUiUrl}
+              style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+              title="Expirements DB User Interface"
+            ></iframe>
+          </div>
         )}
-        {!inputMode ? (
+        {!browseExpirementsMode && !inputMode ? (
           <div
             style={{
               paddingLeft: "10px",
@@ -1268,9 +1292,11 @@ const AdamantMain = ({ onLogout }) => {
             ) : null}
           </div>
         ) : null}
-        <div style={{ padding: "10px" }}>
-          <Divider />
-        </div>
+        {!browseExpirementsMode && (
+          <div style={{ padding: "10px" }}>
+            <Divider />
+          </div>
+        )}
         {renderReady === true ? (
           <FormRenderer
             revertAllChanges={revertAllChanges}
@@ -1280,81 +1306,85 @@ const AdamantMain = ({ onLogout }) => {
             edit={editMode}
           />
         ) : null}
-        <div style={{ padding: "10px" }}>
-          <Divider />
-        </div>
-        <div
-          style={{
-            padding: "10px 10px",
-            display: "flex",
-            justifyContent: "right",
-          }}
-        >
-          {inputMode ? (
-            <div style={{ width: "100%", display: "inline-block" }}>
-              <Button
-                onClick={() => toEditMode()}
-                style={{ float: "left", marginRight: "5px" }}
-                variant="outlined"
-              >
-                Back to Edit Mode
-              </Button>
-              {createScratchMode || browseSchemaMode === true ? (
-              <>
+        {!browseExpirementsMode && (
+          <>
+            <div style={{ padding: "10px" }}>
+              <Divider />
+            </div>
+            <div
+              style={{
+                padding: "10px 10px",
+                display: "flex",
+                justifyContent: "right",
+              }}
+            >
+              {inputMode ? (
+                <div style={{ width: "100%", display: "inline-block" }}>
+                  <Button
+                    onClick={() => toEditMode()}
+                    style={{ float: "left", marginRight: "5px" }}
+                    variant="outlined"
+                  >
+                    Back to Edit Mode
+                  </Button>
+                  {createScratchMode || browseSchemaMode === true ? (
+                  <>
+                    <Button
+                      onClick={() => handleOnClickSaveSchema()}
+                      style={{ float: "right" }}
+                      variant="contained"
+                      color="primary"
+                    >
+                      Save Schema
+                    </Button>
+                  </>
+                  ) : null}
+	              {createScratchMode || browseSchemaMode === false ? (
+                  	<>
+                      <Button
+                        onClick={() => handleDownloadJsonSchema()}
+                        style={{ float: "right" }}
+                        variant="outlined"
+                      >
+                       <DownloadIcon /> Download Schema
+                      </Button>
+                      <Button
+                        onClick={() => handleDownloadFormData()}
+                        style={{ float: "right", marginRight: "5px" }}
+                        variant="outlined"
+                      >
+                        <DownloadIcon /> Download Dataset
+                      </Button>
+                    </>
+                  ) : null} 
+                </div>
+              ) : (
                 <Button
-                  onClick={() => handleOnClickSaveSchema()}
-                  style={{ float: "right" }}
+                  disabled={disable}
+                  onClick={compileOnClick}
                   variant="contained"
                   color="primary"
                 >
-                  Save Schema
+                  Compile
                 </Button>
-              </>
-              ) : null}
-	            {createScratchMode || browseSchemaMode === false ? (
-              	<>
-                  <Button
-                    onClick={() => handleDownloadJsonSchema()}
-                    style={{ float: "right" }}
-                    variant="outlined"
-                  >
-                   <DownloadIcon /> Download Schema
-                  </Button>
-                  <Button
-                    onClick={() => handleDownloadFormData()}
-                    style={{ float: "right", marginRight: "5px" }}
-                    variant="outlined"
-                  >
-                    <DownloadIcon /> Download Dataset
-                  </Button>
-                </>
-              ) : null} 
+              )}
             </div>
-          ) : (
-            !browseExpirementsMode && (
-              <Button
-                disabled={disable}
-                onClick={compileOnClick}
-                variant="contained"
-                color="primary"
-              >
-                Compile
-              </Button>
-            )
-          )}
-        </div>
+          </>
+        )}
         {/* <div style={{ padding: "10px", color: "grey" }}>ADAMANT v1.2.0</div>
         <Button variant="contained" color="primary" onClick={handleLogin}>
         Login
         </Button> */}
-        <div style={{ padding: "10px", color: "grey" }}>
-        <div>ADAMANT v1.2.0</div>
-        <Button variant="contained" color="primary" onClick={handleLogout}>
-          Logout
-        </Button>
-        </div>
-      </FormContext.Provider>
-    </>
+        {!browseExpirementsMode && (
+          <div style={{ padding: "10px", color: "grey" }}>
+            <div>ADAMANT v1.2.0</div>
+            <Button variant="contained" color="primary" onClick={handleLogout}>
+              Logout
+            </Button>
+          </div>
+        )}
+      </div>
+    </FormContext.Provider>
   );
 };
 

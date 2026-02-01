@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "raman_experiment",
+  "title": "Raman Experiment Data for Graphene and Soot Mixtures",
+  "description": "This dataset captures the experimental parameters for Raman spectroscopy of graphene and soot mixtures.",
+  "type": "object",
+  "properties": {
+    "FileTypeIdentifier": {
+      "title": "FileTypeIdentifier",
+      "description": "To allow crawlers to identify JSON files",
+      "type": "string",
+      "enum": [
+        "This is a EMPI-RF metadata File. Do not change this for crawler identification"
+      ],
+      "default": "This is a EMPI-RF metadata File. Do not change this for crawler identification"
+    },
+    "Identifier": {
+      "title": "Identifier",
+      "description": "Unique identifier for the experiment",
+      "type": "string",
+      "default": "EXPERIMENT001"
+    },
+    "SampleID": {
+      "title": "SampleID",
+      "description": "Unique identifier for the analyzed sample",
+      "type": "string",
+      "default": "FexOy-0001-BFR"
+    },
+    "Creator": {
+      "title": "Creator",
+      "description": "The name of the primary researcher",
+      "type": "string",
+      "default": "Dr. Jane Doe"
+    },
+    "ORCID": {
+      "title": "ORCID",
+      "description": "ID of the primary researcher",
+      "type": "string",
+      "default": "0000-0001-2345-6789"
+    },
+    "Date": {
+      "title": "Date",
+      "description": "The date when the experiment started in ISO 8601",
+      "type": "string",
+      "default": "2024-11-28"
+    },
+    "Time": {
+      "title": "Time",
+      "description": "The time when the experiment started in ISO 8601-1:2019",
+      "type": "string",
+      "default": "11:01:01"
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Name of the related project",
+      "type": "string",
+      "default": "FexOy Raman Study"
+    },
+    "RamanLaserWavelength": {
+      "title": "RamanLaserWavelength",
+      "description": "Wavelength of the Raman laser in nanometers",
+      "type": "number",
+      "default": 532
+    },
+    "RamanLaserPower": {
+      "title": "RamanLaserPower",
+      "description": "Power of the Raman laser in milliwatts",
+      "type": "number",
+      "default": 10
+    },
+    "Accumulations": {
+      "title": "Accumulations",
+      "description": "Number of accumulations for the Raman measurement",
+      "type": "number",
+      "default": 3
+    },
+    "IntegrationTime": {
+      "title": "IntegrationTime",
+      "description": "Integration time per accumulation in seconds",
+      "type": "number",
+      "default": 1
+    },
+    "SchemaID": {
+      "title": "SchemaID",
+      "description": "Unique identifier for the schema",
+      "type": "string",
+      "enum": [
+        "raman_experiment"
+      ]
+    }
+  },
+  "required": [
+    "FileTypeIdentifier",
+    "Identifier",
+    "SampleID",
+    "Creator",
+    "ORCID",
+    "Date",
+    "Time",
+    "Project",
+    "RamanLaserWavelength",
+    "RamanLaserPower",
+    "Accumulations",
+    "IntegrationTime"
+  ]
+}

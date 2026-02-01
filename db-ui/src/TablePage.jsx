@@ -1,8 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { MaterialReactTable } from "material-react-table";
-import { Button, TextField, MenuItem } from "@mui/material";
+import { MaterialReactTable, MRT_TablePagination } from "material-react-table";
+import { Button, TextField, MenuItem, Switch, FormControlLabel } from "@mui/material";
 import { mkConfig, generateCsv, download } from "export-to-csv";
 import * as XLSX from "@e965/xlsx";
+
+const DEFAULT_HIDDEN_COLUMN_KEY_MATCH =
+  /(filetypeidentifier|schemaid|documentation[_-]?location|document[_-]?location|documatiatin[_-]?location)/i;
+const DATE_TIME_COLUMN_KEY_MATCH = /^(date|time)$/i;
+const DATE_TIME_DEFAULT_SIZE = 95; // 10% smaller than 105 (previous size)
 
 function JoinTablePage() {
   const [tables, setTables] = useState([]);
@@ -14,7 +19,62 @@ function JoinTablePage() {
   const [column2, setColumn2] = useState("");
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [density, setDensity] = useState("compact");
+  const [columnVisibility, setColumnVisibility] = useState({});
+  const [exportSelectedOnly, setExportSelectedOnly] = useState(false);
+
+  const filterOptionsByKey = useMemo(() => {
+    const map = {};
+    columns.forEach((col) => {
+      const key = col.accessorKey;
+      const values = new Set();
+      rows.forEach((row) => {
+        const value = row?.[key];
+        if (value === undefined || value === null) return;
+        if (typeof value === "string") values.add(value);
+        else values.add(JSON.stringify(value));
+      });
+      map[key] = Array.from(values);
+    });
+    return map;
+  }, [columns, rows]);
+
+  const displayColumns = useMemo(
+    () =>
+      columns.map((col) => {
+        const next = { ...col };
+        const variant = col.filterVariant;
+        if (variant === "autocomplete" || variant === "select" || variant === "multi-select") {
+          next.filterSelectOptions = filterOptionsByKey[col.accessorKey] || [];
+        }
+        return next;
+      }),
+    [columns, filterOptionsByKey]
+  );
+
+  const defaultColumn = useMemo(
+    () => ({
+      minSize: 80,
+      maxSize: 500,
+      size: 140,
+    }),
+    []
+  );
+
+  useEffect(() => {
+    if (!columns.length) return;
+    setColumnVisibility((prev) => {
+      let updated = false;
+      const next = { ...prev };
+      columns.forEach((col) => {
+        const key = col.accessorKey;
+        if (!key || !DEFAULT_HIDDEN_COLUMN_KEY_MATCH.test(key)) return;
+        if (key in next) return;
+        next[key] = false;
+        updated = true;
+      });
+      return updated ? next : prev;
+    });
+  }, [columns]);
 
   useEffect(() => {
     fetch("/api/tables")
@@ -56,10 +116,34 @@ function JoinTablePage() {
           alert("No data available for the join.");
         }
 
-        const allColumns = columns.map((field) => ({
-          accessorKey: field,
-          header: field.charAt(0).toUpperCase() + field.slice(1),
-        }));
+        const inferFilterConfigFromSample = (field, sampleRows) => {
+          const maxSample = Math.min(sampleRows.length, 50);
+          for (let i = 0; i < maxSample; i += 1) {
+            const value = sampleRows[i]?.[field];
+            if (value === undefined || value === null || value === "") continue;
+            if (typeof value === "number" && Number.isFinite(value)) {
+              return { filterVariant: "autocomplete" };
+            }
+            if (typeof value === "string") {
+              const trimmed = value.trim();
+              if (trimmed !== "" && /^-?\d+(?:\.\d+)?$/.test(trimmed)) {
+                return { filterVariant: "autocomplete" };
+              }
+            }
+            return { filterVariant: "autocomplete" };
+          }
+          return { filterVariant: "autocomplete" };
+        };
+
+        const allColumns = columns.map((field) => {
+          const isDateOrTime = DATE_TIME_COLUMN_KEY_MATCH.test(field || "");
+          return {
+            accessorKey: field,
+            header: field.charAt(0).toUpperCase() + field.slice(1),
+            ...inferFilterConfigFromSample(field, data),
+            ...(isDateOrTime ? { size: DATE_TIME_DEFAULT_SIZE } : null),
+          };
+        });
 
         setRows(data);
         setColumns(allColumns);
@@ -86,22 +170,29 @@ function JoinTablePage() {
     [columnHeaders]
   );
 
-  const handleExportCsv = () => {
-    if (!rows.length) {
-      alert("No data to export.");
+  const getExportRows = (table) => {
+    if (!exportSelectedOnly) return rows;
+    return table.getSelectedRowModel().rows.map((row) => row.original);
+  };
+
+  const handleExportCsv = (table) => {
+    const exportRows = getExportRows(table);
+    if (!exportRows.length) {
+      alert(exportSelectedOnly ? "No rows selected." : "No data to export.");
       return;
     }
-    const csv = generateCsv(csvConfig)(rows);
+    const csv = generateCsv(csvConfig)(exportRows);
     download(csvConfig)(csv);
   };
 
-  const handleExportExcel = () => {
-    if (!rows.length) {
-      alert("No data to export.");
+  const handleExportExcel = (table) => {
+    const exportRows = getExportRows(table);
+    if (!exportRows.length) {
+      alert(exportSelectedOnly ? "No rows selected." : "No data to export.");
       return;
     }
     const headers = columns.map((col) => col.accessorKey);
-    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+    const worksheet = XLSX.utils.json_to_sheet(exportRows, { header: headers });
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "JoinedData");
     XLSX.writeFile(workbook, "joined-table.xlsx");
@@ -114,10 +205,14 @@ function JoinTablePage() {
         flexDirection: "column",
         width: "100%",
         height: "100%",
+        minHeight: 0,
+        minWidth: 0,
+        overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "8px", padding: "4px 4px 0 4px", alignItems: "center" }}>
         <TextField
+          size="small"
           select
           label="Table 1"
           value={table1}
@@ -132,6 +227,7 @@ function JoinTablePage() {
         </TextField>
 
         <TextField
+          size="small"
           select
           label="Table 2"
           value={table2}
@@ -146,6 +242,7 @@ function JoinTablePage() {
         </TextField>
 
         <TextField
+          size="small"
           select
           label="Column from Table 1"
           value={column1}
@@ -162,6 +259,7 @@ function JoinTablePage() {
         </TextField>
 
         <TextField
+          size="small"
           select
           label="Column from Table 2"
           value={column2}
@@ -177,57 +275,129 @@ function JoinTablePage() {
         </TextField>
 
         <Button
+          size="small"
           variant="contained"
           onClick={fetchJoinData}
           style={{ minWidth: 150, backgroundColor: "#3f51b5", color: "#fff" }}
         >
           Fetch Data
         </Button>
-
-        {rows.length > 0 && (
-          <>
-            <Button
-              variant="contained"
-              onClick={handleExportCsv}
-              style={{ minWidth: 150, backgroundColor: "#3f51b5", color: "#fff" }}
-            >
-              Export as CSV
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleExportExcel}
-              style={{ minWidth: 150, backgroundColor: "#3f51b5", color: "#fff" }}
-            >
-              Export as Excel
-            </Button>
-          </>
-        )}
-
-        <TextField
-          select
-          label="Grid Density"
-          value={density}
-          onChange={(e) => setDensity(e.target.value)}
-          style={{ minWidth: 150 }}
-        >
-          <MenuItem value="compact">Compact</MenuItem>
-          <MenuItem value="comfortable">Comfortable</MenuItem>
-          <MenuItem value="spacious">Spacious</MenuItem>
-        </TextField>
       </div>
 
-      <div style={{ height: "700px", overflow: "auto" }}>
+      <div style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }}>
         <MaterialReactTable
-          columns={columns}
+          columns={displayColumns}
           data={rows}
+          defaultColumn={defaultColumn}
+          enableColumnFilters
+          enableColumnFilterModes
+          enableColumnResizing
+          columnResizeMode="onChange"
+          enableFacetedValues={false}
+          columnFilterDisplayMode="popover"
           enableRowSelection
           enableDensityToggle={false}
           enableStickyHeader
-          onDensityChange={setDensity}
-          state={{ density }}
+          enableTopToolbar
+          enableBottomToolbar={false}
+          renderTopToolbarCustomActions={({ table }) => (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <MRT_TablePagination table={table} />
+              {rows.length > 0 && (
+                <>
+                  <FormControlLabel
+                    label="export only selection"
+                    control={
+                      <Switch
+                        size="small"
+                        checked={exportSelectedOnly}
+                        onChange={(e) => setExportSelectedOnly(e.target.checked)}
+                      />
+                    }
+                  />
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => handleExportCsv(table)}
+                    style={{ minWidth: 150, backgroundColor: "#3f51b5", color: "#fff" }}
+                  >
+                    Export as CSV
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => handleExportExcel(table)}
+                    style={{ minWidth: 150, backgroundColor: "#3f51b5", color: "#fff" }}
+                  >
+                    Export as Excel
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           getRowId={(_, index) => index.toString()}
-          initialState={{ pagination: { pageSize: 10, pageIndex: 0 } }}
-          muiTableContainerProps={{ sx: { maxHeight: "700px" } }}
+          state={{ columnVisibility }}
+          onColumnVisibilityChange={setColumnVisibility}
+          initialState={{ pagination: { pageSize: 10, pageIndex: 0 }, density: "compact" }}
+          muiPaginationProps={{ rowsPerPageOptions: [10, 25, 50, 100, 250, 500] }}
+          muiTableContainerProps={{
+            sx: {
+              flex: 1,
+              maxWidth: "100%",
+              minWidth: 0,
+              overflow: "auto",
+              scrollbarWidth: "auto",
+              "&::-webkit-scrollbar": {
+                width: 22,
+                height: 22,
+              },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "rgba(0, 0, 0, 0.35)",
+                borderRadius: 8,
+                border: "5px solid transparent",
+                backgroundClip: "content-box",
+              },
+              "&::-webkit-scrollbar-track": {
+                backgroundColor: "rgba(0, 0, 0, 0.06)",
+              },
+            },
+          }}
+          muiTableProps={{
+            sx: {
+              width: "max-content",
+              minWidth: "100%",
+              tableLayout: "auto",
+            },
+          }}
+          displayColumnDefOptions={{
+            "mrt-row-select": { size: 36, minSize: 36, maxSize: 44 },
+          }}
+          muiTableHeadCellProps={{
+            sx: {
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              borderRight: "1px solid rgba(0, 0, 0, 0.12)",
+            },
+          }}
+          muiTableBodyCellProps={{
+            sx: {
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              borderRight: "1px solid rgba(0, 0, 0, 0.12)",
+            },
+          }}
+          muiTablePaperProps={{
+            sx: {
+              boxShadow: "none",
+              border: "none",
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+            },
+          }}
         />
       </div>
     </div>

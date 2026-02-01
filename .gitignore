@@ -39,6 +39,10 @@
 .vscode
 .env
 
+# local ingest folder
+/data_inbox/*
+!/data_inbox/.gitkeep
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
