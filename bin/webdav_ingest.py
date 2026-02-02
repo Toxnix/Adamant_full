@@ -5,7 +5,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote, unquote, urljoin, urlparse
 import xml.etree.ElementTree as ET
 
 import pymysql
@@ -85,6 +85,14 @@ def normalize_dir_path(path: str) -> str:
     return path if path.endswith("/") else path + "/"
 
 
+def canonicalize_path(path: str) -> str:
+    return quote(unquote(path), safe="/")
+
+
+def escape_like(value: str, escape: str = "\\") -> str:
+    return value.replace(escape, escape + escape).replace("%", escape + "%").replace("_", escape + "_")
+
+
 def build_file_url(base_url: str, href: str) -> str:
     parsed = urlparse(base_url)
     if href.startswith(parsed.path):
@@ -122,13 +130,13 @@ def list_json_files_recursive(
     seen_files = set()
     skipped_dirs = 0
 
-    start_path = normalize_dir_path(urlparse(start_url).path)
+    start_path = canonicalize_path(normalize_dir_path(urlparse(start_url).path))
     visited_dirs.add(start_path)
     queue = [start_url]
 
     while queue:
         current_url = queue.pop(0)
-        current_path = normalize_dir_path(urlparse(current_url).path)
+        current_path = canonicalize_path(normalize_dir_path(urlparse(current_url).path))
         entries = propfind(session, current_url)
         entry_count += len(entries)
 
@@ -137,7 +145,7 @@ def list_json_files_recursive(
             if not href:
                 continue
             href_url = build_file_url(base_url, href)
-            href_path = normalize_dir_path(urlparse(href_url).path)
+            href_path = canonicalize_path(normalize_dir_path(urlparse(href_url).path))
             if item.get("is_collection"):
                 prev_state = folder_state.get(href_path)
                 etag = item.get("etag") or ""
@@ -250,9 +258,10 @@ def ensure_folder_state_table(cursor):
 
 def get_folder_state_map(cursor, base_path: str) -> Dict[str, Dict[str, str]]:
     state = {}
-    like_pattern = f"{base_path}%"
+    base_path = canonicalize_path(normalize_dir_path(base_path))
+    like_pattern = f"{escape_like(base_path)}%"
     cursor.execute(
-        "SELECT path, etag, last_modified FROM ingest_folder_state WHERE path LIKE %s",
+        "SELECT path, etag, last_modified FROM ingest_folder_state WHERE path LIKE %s ESCAPE '\\'",
         (like_pattern,),
     )
     for path, etag, last_modified in cursor.fetchall():

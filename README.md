@@ -1,15 +1,17 @@
-# <img src="https://raw.githubusercontent.com/csihda/adamant/6b2a50dff162b0fc7af0dc6873d7e9d34cfa93aa/src/assets/adamant-header-5.svg" alt="Adamant Logo" style="width:45%;"/> <img src="src/assets/EMPI_Logo_reactive-fluids_Color_Black.png" alt="EMPI-RF Logo" style="width:45%;"/>
+﻿# <img src="https://raw.githubusercontent.com/csihda/adamant/6b2a50dff162b0fc7af0dc6873d7e9d34cfa93aa/src/assets/adamant-header-5.svg" alt="Adamant Logo" style="width:45%;"/> <img src="src/assets/EMPI_Logo_reactive-fluids_Color_Black.png" alt="EMPI-RF Logo" style="width:45%;"/>
 
-ADAMANT v3.0 is a JSON-Schema-based metadata editor and WebDAV-to-MariaDB intake tool for FAIR research workflows. It renders interactive forms from JSON Schema, validates user input, and produces JSON datasets that can be ingested into MariaDB.
+# SchemaFlow
+
+SchemaFlow is a JSON-Schema-based workflow for FAIR metadata in a Nextcloud + MariaDB environment. It lets you design schemas, collect metadata as JSON, and ingest those datasets into MariaDB via WebDAV.
 
 This project builds on the upstream work at `https://github.com/plasma-mds/adamant`.
 
-## What’s new in v3.0
+## What is new in this workflow
 
-- **WebDAV → MariaDB ingest** (`bin/webdav_ingest.py`) with state tracking
-- **End‑to‑end Nextcloud workflow** for FAIR metadata
+- **WebDAV to MariaDB ingest** (`bin/webdav_ingest.py`) with state tracking
+- **End-to-end Nextcloud workflow** for FAIR metadata
 - **Embedded DB Web UI** for browsing and joins
-- **One‑shot Ubuntu deployment script** with systemd services
+- **One-shot Ubuntu deployment script** with systemd services
 - **Nginx Basic Auth** for the entire UI/API
 
 ## Features
@@ -24,9 +26,9 @@ This project builds on the upstream work at `https://github.com/plasma-mds/adama
 
 ## Workflow focus (FAIR metadata)
 
-ADAMANT is designed around a practical workflow for FAIR metadata in a Nextcloud environment:
+SchemaFlow is designed around a practical workflow for FAIR metadata in a Nextcloud environment:
 
-1. **Schema authoring** in the web UI (JSON Schema draft‑07).
+1. **Schema authoring** in the web UI (JSON Schema draft-07).
 2. **Dataset creation** by researchers using the rendered forms.
 3. **Storage in Nextcloud** (WebDAV) as JSON files.
 4. **Automated ingest** into MariaDB via the WebDAV ingester.
@@ -38,36 +40,18 @@ Draft-07 is used for new and edited schemas.
 
 | Field Type | Implemented Keywords | Notes |
 |------------|-----------------------|-------|
-| String     | `title`, `id`, `$id`, `description`, `type`, `enum`, `contentEncoding`, `default`, `minLength`, `maxLength` | `contentEncoding` supports `"base64"` |
+| String     | `title`, `id`, `$id`, `description`, `type`, `enum`, `contentEncoding`, `default`, `minLength`, `maxLength` | `contentEncoding` supports "base64" |
 | Number     | `title`, `id`, `$id`, `description`, `type`, `enum`, `default`, `minimum`, `maximum` | |
 | Integer    | `title`, `id`, `$id`, `description`, `type`, `enum`, `default`, `minimum`, `maximum` | |
 | Boolean    | `title`, `id`, `$id`, `description`, `type`, `default` | |
 
 ## Development
 
-### Frontend
-```bash
-npm install
-npm run dev
-```
+Use the WebDAV ingester during development:
 
-### Backend
 ```bash
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-gunicorn -b :5000 api:app
+python bin/webdav_ingest.py --once
 ```
-
-### DB UI
-```bash
-cd db-ui
-npm install
-npm run dev
-```
-
-Frontend runs at http://localhost:3000 by default.
 
 ## WebDAV Ingest
 
