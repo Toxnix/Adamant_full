@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_URL=${REPO_URL:-git@github.com:Toxnix/Adamant_full.git}
+REPO_URL=${REPO_URL:-https://github.com/Toxnix/Adamant_full.git}
 REPO_DIR=${REPO_DIR:-Adamant_full}
 REPO_BRANCH=${REPO_BRANCH:-main}
 ROOT_DIR="$SCRIPT_DIR/$REPO_DIR"
