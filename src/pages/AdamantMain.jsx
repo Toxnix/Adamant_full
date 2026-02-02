@@ -110,7 +110,13 @@ const AdamantMain = ({ onLogout }) => {
   const [jobRequestSchemas, setJobRequestSchemas] = useState([]);
   const [submitTextList, setSubmitTextList] = useState([]);
   const [setSubmitText] = useState("Submit Job Request");
-  const [browseExpirementsMode, setBrowseExpirementsMode] = useState(false);
+  const [browseExpirementsMode, setBrowseExpirementsMode] = useState(() => {
+    try {
+      return sessionStorage.getItem("adamant_browse_db_ui") === "1";
+    } catch (e) {
+      return false;
+    }
+  });
   const isDev = import.meta.env && import.meta.env.DEV;
   const dbUiUrl = isDev ? "http://localhost:3001/db-ui/" : "/db-ui/";
   useEffect(() => {
@@ -118,6 +124,17 @@ const AdamantMain = ({ onLogout }) => {
     return () => {
       document.body.style.overflow = "";
     };
+  }, [browseExpirementsMode]);
+  useEffect(() => {
+    try {
+      if (browseExpirementsMode) {
+        sessionStorage.setItem("adamant_browse_db_ui", "1");
+      } else {
+        sessionStorage.removeItem("adamant_browse_db_ui");
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
   }, [browseExpirementsMode]);
   // for dropdown buttons
   const [setAnchorEl] = useState(null);

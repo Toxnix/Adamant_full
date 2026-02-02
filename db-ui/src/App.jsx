@@ -1,10 +1,24 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AppBar, Toolbar, Typography, Select, MenuItem, Box } from "@mui/material";
 import TablePage from "./TablePage"; // Seite für Tabellen
 import DataGridPage from "./DataGridPage"; // Die Seite mit dem ursprünglichen Skript
 
 const App = () => {
-  const [currentPage, setCurrentPage] = useState("Page1");
+  const [currentPage, setCurrentPage] = useState(() => {
+    try {
+      return localStorage.getItem("adamant_dbui_page") || "Page1";
+    } catch (e) {
+      return "Page1";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("adamant_dbui_page", currentPage);
+    } catch (e) {
+      // ignore storage errors
+    }
+  }, [currentPage]);
 
   // Render-Funktion für Seiten
   const renderPage = () => {
