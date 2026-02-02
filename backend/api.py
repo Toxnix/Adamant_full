@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_restful import Api
 import json
 from pathlib import Path
+import re
 import os
 import pymysql
 import logging
@@ -30,6 +31,8 @@ DB_NAME = db_config['DB_NAME']
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
+
+SCHEMA_DIR = Path(__file__).resolve().parent / "schemas"
 
 # class DataHandler(FileSystemEventHandler):
 #     def __init__(self):
@@ -121,6 +124,16 @@ def map_json_type_to_sql(json_type):
     }
     return type_mapping.get(json_type, "VARCHAR(255)")
 
+def normalize_json_type(json_type):
+    if isinstance(json_type, list):
+        for item in json_type:
+            if item != "null":
+                return item
+        return json_type[0] if json_type else "string"
+    if not json_type:
+        return "string"
+    return json_type
+
 def extract_properties(properties, parent_key=''):
     items = {}
     for key, value in properties.items():
@@ -147,7 +160,7 @@ def create_table_from_schema(schema_name, schema_content):
 
     columns = []
     for prop, details in flattened_properties.items():
-        column_type = map_json_type_to_sql(details.get("type", "string"))
+        column_type = map_json_type_to_sql(normalize_json_type(details.get("type", "string")))
         columns.append(f"`{prop}` {column_type}")
         
     # Append documentLocation per default
@@ -161,6 +174,7 @@ def create_table_from_schema(schema_name, schema_content):
     
 
     # Connect to the database and execute the query
+    connection = None
     try:
         connection = pymysql.connect(
             host=DB_HOST,
@@ -170,18 +184,19 @@ def create_table_from_schema(schema_name, schema_content):
             database=DB_NAME
         )
         logger.info('CONNECTION TO DB IS SUCCESSFUL')
-    except pymysql.Error as e:
-        logger.error(f'Error connecting to MariaDB: {e}')
-    try:
         with connection.cursor() as cursor:
             cursor.execute(drop_table_query)
             logger.info('DROP TABLE EXECUTED')
             cursor.execute(create_table_query)
         connection.commit()
         logger.info('COMMIT SUCCESSFUL')
+    except pymysql.Error as e:
+        logger.error(f'Error connecting to MariaDB: {e}')
+        raise
     finally:
-        connection.close()
-        logger.info('CONNECTION IS CLOSED')
+        if connection:
+            connection.close()
+            logger.info('CONNECTION IS CLOSED')
 
 
 # @app.route('/')
@@ -212,11 +227,12 @@ def check_mode():
 @app.route('/api/get_schemas', methods=["GET"])
 def get_schemas():
     list_of_schemas = {"schemaName": [""], "schema": [None]}
-    filelist = list(Path('./schemas').glob('**/*.json'))
+    SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
+    filelist = list(SCHEMA_DIR.glob('**/*.json'))
     for i in range(0, len(filelist)):
         file = filelist[i]
         content = Path(file).read_text(encoding='utf-8')
-        filename = Path(file).relative_to(Path('./schemas')).as_posix()
+        filename = Path(file).relative_to(SCHEMA_DIR).as_posix()
         list_of_schemas["schema"].append(content)
         list_of_schemas["schemaName"].append(filename)
     return list_of_schemas
@@ -231,9 +247,13 @@ def save_schema():
     if schema_name and schema_content:
         try:
             schema_dict = json.loads(schema_content)
+            if not isinstance(schema_dict.get("properties"), dict):
+                return {"error": "Schema properties missing or invalid"}, 400
             schema_id = schema_dict.get("$id")
             if not schema_id:
                 return {"error": "$id is missing in the schema"}, 400
+            if not re.match(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$", schema_name):
+                return {"error": "Invalid schema/table name. Use letters, numbers, and underscores only."}, 400
 
             schema_dict["properties"]["SchemaID"] = {
                 "title": "SchemaID",
@@ -244,7 +264,9 @@ def save_schema():
             
             # Convert the updated schema dictionary back to JSON
             updated_schema_content = json.dumps(schema_dict, indent=2)
-            with open(f"./schemas/{schema_name}.json", "w", encoding="utf-8") as file:
+            SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
+            schema_path = SCHEMA_DIR / f"{schema_name}.json"
+            with open(schema_path, "w", encoding="utf-8") as file:
                 file.write(updated_schema_content)
                 # Create the corresponding table in the database
                 logger.info('CREATE IS CALLED')

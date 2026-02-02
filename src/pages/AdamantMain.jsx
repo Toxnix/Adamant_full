@@ -297,19 +297,20 @@ const AdamantMain = ({ onLogout }) => {
         },
         body: JSON.stringify(schemaData),
       })
-      .then(response => {
+      .then(async response => {
+        const payload = await response.json().catch(() => ({}));
         if (response.ok) {
           console.log('Schema saved successfully');
           toast.success('Schema saved successfully!', {
             toastId: 'savingSchemaSuccess',
           });
         } else {
-          throw new Error('Failed to save schema');
+          throw new Error(payload.error || 'Failed to save schema');
         }
       })
       .catch(error => {
         console.error('Failed to save schema:', error);
-        toast.error('Error saving schema. Please try again.', {
+        toast.error(`Error saving schema: ${error.message}`, {
           toastId: 'savingSchemaError',
         });
       });
