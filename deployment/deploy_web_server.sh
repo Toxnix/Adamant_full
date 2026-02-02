@@ -42,10 +42,14 @@ fi
 
 #+ Optional cleanup flag: pass --clean/--cleanup
 CLEAN_BEFORE_INSTALL=0
+FORCE_CERTBOT=0
 for arg in "$@"; do
     case "$arg" in
         --clean|--cleanup)
             CLEAN_BEFORE_INSTALL=1
+            ;;
+        --newSSL|--newssl)
+            FORCE_CERTBOT=1
             ;;
     esac
 done
@@ -63,7 +67,10 @@ if [ "$CLEAN_BEFORE_INSTALL" = "1" ]; then
     sudo systemctl stop certbot.timer certbot.service 2>/dev/null || true
     sudo apt purge -y nginx nginx-common nginx-core || true
     sudo apt purge -y certbot python3-certbot-nginx || true
-    sudo rm -rf /etc/nginx /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt
+    sudo rm -rf /etc/nginx
+    if [ "$FORCE_CERTBOT" = "1" ]; then
+        sudo rm -rf /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt
+    fi
 
     echo "Removing potentially conflicting Node.js/npm installs..."
     sudo apt remove -y nodejs npm yarn || true
@@ -113,6 +120,8 @@ else
     DB_USER=${DB_USER:-adamant_user}
     DB_PASSWORD=${DB_PASSWORD:-adamant_password}
 fi
+DB_HOST=${DB_HOST:-127.0.0.1}
+DB_PORT=${DB_PORT:-3306}
 SSL_EMAIL=${SSL_EMAIL:-admin@example.com}
 SSL_DOMAIN=${SSL_DOMAIN:-metadata.empi-rf.de}
 BASIC_AUTH_USER=${BASIC_AUTH_USER:-}
@@ -127,8 +136,8 @@ fi
 # Write DB config for backend
 cat > "$ROOT_DIR/backend/conf/db_config.json" <<EOF
 {
-  "DB_HOST": "${DB_HOST:-127.0.0.1}",
-  "DB_PORT": ${DB_PORT:-3306},
+  "DB_HOST": "${DB_HOST}",
+  "DB_PORT": ${DB_PORT},
   "DB_USER": "${DB_USER}",
   "DB_PASSWORD": "${DB_PASSWORD}",
   "DB_NAME": "${DB_NAME}"
@@ -160,14 +169,22 @@ if sudo mysql -u root -p"${DB_ROOT_PASSWORD}" -e "SELECT 1;" >/dev/null 2>&1; th
     sudo mysql -u root -p"${DB_ROOT_PASSWORD}" <<MYSQL_SETUP
 CREATE DATABASE IF NOT EXISTS ${DB_NAME};
 CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
+CREATE USER IF NOT EXISTS '${DB_USER}'@'${DB_HOST}' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'${DB_HOST}';
 FLUSH PRIVILEGES;
 MYSQL_SETUP
 else
     sudo mysql -u root <<MYSQL_SETUP
 CREATE DATABASE IF NOT EXISTS ${DB_NAME};
 CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
+CREATE USER IF NOT EXISTS '${DB_USER}'@'${DB_HOST}' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'${DB_HOST}';
 FLUSH PRIVILEGES;
 MYSQL_SETUP
 fi
@@ -176,6 +193,8 @@ echo "MariaDB setup complete. Database '${DB_NAME}' and user '${DB_USER}' create
 
 echo "Setting up Python backend..."
 cd "$ROOT_DIR/backend"
+sudo mkdir -p "$ROOT_DIR/backend/schemas"
+sudo chown -R "$SERVICE_USER":"$SERVICE_USER" "$ROOT_DIR/backend/schemas"
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -314,14 +333,22 @@ if [ "$SSL_DOMAIN" = "_" ]; then
 else
     CERT_PATH="/etc/letsencrypt/live/${SSL_DOMAIN}/fullchain.pem"
     KEY_PATH="/etc/letsencrypt/live/${SSL_DOMAIN}/privkey.pem"
-    if [ -f "$CERT_PATH" ] && [ -f "$KEY_PATH" ]; then
-        echo "Existing SSL certificate found for ${SSL_DOMAIN}. Skipping certbot."
-    else
+    if [ "$FORCE_CERTBOT" = "1" ]; then
         sudo certbot --nginx \
             --non-interactive \
             --agree-tos \
             --email "${SSL_EMAIL}" \
             -d "${SSL_DOMAIN}"
+    else
+        if [ -f "$CERT_PATH" ] && [ -f "$KEY_PATH" ]; then
+            echo "Existing SSL certificate found for ${SSL_DOMAIN}. Skipping certbot."
+        else
+            sudo certbot --nginx \
+                --non-interactive \
+                --agree-tos \
+                --email "${SSL_EMAIL}" \
+                -d "${SSL_DOMAIN}"
+        fi
     fi
 fi
 
