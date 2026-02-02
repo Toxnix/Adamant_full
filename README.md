@@ -1,38 +1,68 @@
-﻿# <img src="https://raw.githubusercontent.com/csihda/adamant/6b2a50dff162b0fc7af0dc6873d7e9d34cfa93aa/src/assets/adamant-header-5.svg" alt="Adamant Logo" style="width:45%;"/> <img src="src/assets/EMPI_Logo_reactive-fluids_Color_Black.png" alt="EMPI-RF Logo" style="width:45%;"/>
+﻿# SchemaFlow
 
-# SchemaFlow
+SchemaFlow is a JSON-Schema-based workflow for FAIR metadata in a Nextcloud + MariaDB environment.
+It lets you:
 
-SchemaFlow is a JSON-Schema-based workflow for FAIR metadata in a Nextcloud + MariaDB environment. It lets you design schemas, collect metadata as JSON, and ingest those datasets into MariaDB via WebDAV.
+- define metadata requirements as JSON Schema,
+- collect metadata as validated JSON files (via a form UI),
+- store those JSON files in Nextcloud,
+- ingest them into MariaDB via WebDAV so they become queryable, filterable and exportable.
 
-This project builds on the upstream work at `https://github.com/plasma-mds/adamant`.
+This project builds on upstream work at `https://github.com/plasma-mds/adamant`.
 
-## What is new in this workflow
+## Why this makes FAIR metadata easier
 
-- **WebDAV to MariaDB ingest** (`bin/webdav_ingest.py`) with state tracking
-- **End-to-end Nextcloud workflow** for FAIR metadata
-- **Embedded DB Web UI** for browsing and joins
-- **One-shot Ubuntu deployment script** with systemd services
-- **Nginx Basic Auth** for the entire UI/API
+FAIR is hard when metadata is collected in ad-hoc spreadsheets or free-text forms. SchemaFlow reduces the friction by turning metadata into a schema-driven workflow:
+
+- Findable: once ingested, metadata lives in MariaDB tables and can be searched, filtered, joined and exported.
+- Accessible: datasets are stored as plain JSON files in Nextcloud (WebDAV) and can be processed automatically.
+- Interoperable: JSON Schema is an explicit contract (types, required fields, enums) that tools can validate against.
+- Reusable: validation and controlled vocabularies reduce ambiguity and ensure comparable metadata across experiments.
+
+In practice this means fewer missing fields, fewer inconsistent spellings/units, and fewer "unknown" values when you later want to aggregate or reuse data.
+
+## What the system does (high level)
+
+SchemaFlow combines four parts:
+
+1. Frontend (schema editor + form renderer)
+   - Renders interactive forms from JSON Schema.
+   - Validates user input and shows structured error messages.
+   - Downloads JSON datasets (including `SchemaID`) and schemas.
+
+2. Backend API (schema storage + MariaDB table management)
+   - Stores schemas and injects a `SchemaID` property.
+   - (Re)creates the matching MariaDB table from the schema.
+
+3. WebDAV ingester (`bin/webdav_ingest.py`)
+   - Scans a Nextcloud folder via WebDAV.
+   - Validates JSON files against local schemas.
+   - Inserts the datasets into the corresponding MariaDB tables.
+   - Tracks state so unchanged files are skipped.
+
+4. DB UI (embedded)
+   - Browse tables/rows/columns.
+   - Filter and export to CSV/XLSX.
+   - Run left-joins for combined exports.
+
+
+## Typical workflow (FAIR metadata)
+
+1. Define or edit a schema in the web UI (JSON Schema draft-07).
+2. Researchers fill in the generated form; the UI validates required fields and types.
+3. The resulting metadata is saved as a JSON file in Nextcloud.
+4. The ingester reads that folder via WebDAV and writes the metadata into MariaDB.
+5. Metadata can now be browsed and exported from the DB UI.
 
 ## Features
 
-- Render interactive forms from JSON Schema
-- Create schemas from scratch (draft-07, fixed)
+- Schema-driven metadata entry (forms generated from JSON Schema)
+- Create schemas from scratch (JSON Schema draft-07 + project core fields)
 - Edit schemas and reorder fields via drag & drop
 - Upload JSON datasets to pre-fill forms
-- Download JSON schema and datasets (adds `SchemaID`)
-- WebDAV ingest (`bin/webdav_ingest.py`) for automated DB upserts
-- Embedded DB UI for browsing and joining tables
-
-## Workflow focus (FAIR metadata)
-
-SchemaFlow is designed around a practical workflow for FAIR metadata in a Nextcloud environment:
-
-1. **Schema authoring** in the web UI (JSON Schema draft-07).
-2. **Dataset creation** by researchers using the rendered forms.
-3. **Storage in Nextcloud** (WebDAV) as JSON files.
-4. **Automated ingest** into MariaDB via the WebDAV ingester.
-5. **Exploration and export** through the embedded Web UI.
+- Download JSON schema and JSON dataset (datasets include `SchemaID`)
+- WebDAV ingest (`bin/webdav_ingest.py`) into MariaDB with state tracking
+- Embedded DB UI for browsing, joins, and export
 
 ## Supported JSON Schema Keywords
 
@@ -45,23 +75,21 @@ Draft-07 is used for new and edited schemas.
 | Integer    | `title`, `id`, `$id`, `description`, `type`, `enum`, `default`, `minimum`, `maximum` | |
 | Boolean    | `title`, `id`, `$id`, `description`, `type`, `default` | |
 
-## Development
 
-Use the WebDAV ingester during development:
 
-```bash
-python bin/webdav_ingest.py --once
-```
+## WebDAV ingest
 
-## WebDAV Ingest
+What the ingester does:
 
-Configure `.env` using `env.example`, then run:
+1. PROPFINDs the configured WebDAV folder recursively and collects `.json` files.
+2. Skips unchanged files based on `etag`/`last_modified` and the `ingest_state` table.
+3. Validates each JSON payload against the matching local schema in `backend/schemas/`.
+4. Inserts the dataset into the MariaDB table that corresponds to the file's `SchemaID`.
 
-```bash
-python bin/webdav_ingest.py --once
-```
+The ingester keeps state in MariaDB:
 
-Use `--watch` (or omit `--once`) for polling mode.
+- `ingest_state`: per file (path, etag/last_modified, schema_id, identifier, status/error)
+- `ingest_folder_state`: per folder (used to skip folders when the WebDAV server provides stable folder metadata)
 
 ## Deployment (Ubuntu 24.04)
 
