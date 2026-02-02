@@ -95,23 +95,7 @@ Draft-07 is used for new and edited schemas.
 | Integer    | `title`, `id`, `$id`, `description`, `type`, `enum`, `default`, `minimum`, `maximum` | |
 | Boolean    | `title`, `id`, `$id`, `description`, `type`, `default` | |
 
-## Development
-
-Use the ingester script during development:
-
-```bash
-python bin/webdav_ingest.py --once --log-level DEBUG
-```
-
 ## WebDAV ingest
-
-Configure `.env` using `env.example`, then run:
-
-```bash
-python bin/webdav_ingest.py --once
-```
-
-Omit `--once` to run in polling mode.
 
 What the ingester does:
 
@@ -129,4 +113,5 @@ Each ingested row also includes `documentlocation`, which points to the metadata
 
 ## Deployment (Ubuntu 24.04)
 
-Use `deployment/deploy_web_server.sh` to install system dependencies, build frontend + db-ui, and configure the backend service.
+Use `deployment/deploy_web_server.sh` with `.env` based on `env.example` to install system dependencies, build frontend + db-ui, and configure the backend service.
+See also `readme_depl.md` for more deployment infos.
