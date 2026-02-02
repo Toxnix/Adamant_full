@@ -81,6 +81,10 @@ def normalize_webdav_url(url: str) -> str:
     return url
 
 
+def normalize_dir_path(path: str) -> str:
+    return path if path.endswith("/") else path + "/"
+
+
 def build_file_url(base_url: str, href: str) -> str:
     parsed = urlparse(base_url)
     if href.startswith(parsed.path):
@@ -103,6 +107,49 @@ def propfind(session: requests.Session, url: str) -> List[Dict[str, str]]:
     response = session.request("PROPFIND", url, data=body, headers=headers)
     response.raise_for_status()
     return parse_propfind(response.text)
+
+
+def list_json_files_recursive(
+    session: requests.Session,
+    base_url: str,
+    start_url: str,
+) -> tuple[List[Dict[str, str]], int, int]:
+    files: List[Dict[str, str]] = []
+    entry_count = 0
+    visited_dirs = set()
+    seen_files = set()
+
+    start_path = normalize_dir_path(urlparse(start_url).path)
+    visited_dirs.add(start_path)
+    queue = [start_url]
+
+    while queue:
+        current_url = queue.pop(0)
+        current_path = normalize_dir_path(urlparse(current_url).path)
+        entries = propfind(session, current_url)
+        entry_count += len(entries)
+
+        for item in entries:
+            href = item.get("href")
+            if not href:
+                continue
+            href_url = build_file_url(base_url, href)
+            href_path = normalize_dir_path(urlparse(href_url).path)
+            if item.get("is_collection"):
+                if href_path == current_path:
+                    continue
+                if href_path not in visited_dirs:
+                    visited_dirs.add(href_path)
+                    queue.append(href_url)
+                continue
+
+            if href.lower().endswith(".json"):
+                if href in seen_files:
+                    continue
+                seen_files.add(href)
+                files.append(item)
+
+    return files, entry_count, len(visited_dirs)
 
 
 def parse_propfind(xml_text: str) -> List[Dict[str, str]]:
@@ -334,17 +381,16 @@ def main():
                 conn.commit()
 
                 try:
-                    entries = propfind(session, target_url)
+                    files, entry_count, dir_count = list_json_files_recursive(session, base_url, target_url)
                 except Exception:
                     logger.exception("WebDAV PROPFIND failed")
                     if args.once:
                         raise
                     time.sleep(cfg["poll_interval"])
                     continue
-                files = [e for e in entries if not e["is_collection"] and e["href"].lower().endswith(".json")]
                 paths = [f["href"] for f in files]
                 state_map = get_state_map(cursor, paths)
-                logger.info("Scan: %d entries, %d json files", len(entries), len(files))
+                logger.info("Scan: %d entries across %d folders, %d json files", entry_count, dir_count, len(files))
 
                 for item in files:
                     href = item["href"]
