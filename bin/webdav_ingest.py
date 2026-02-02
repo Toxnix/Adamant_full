@@ -113,11 +113,14 @@ def list_json_files_recursive(
     session: requests.Session,
     base_url: str,
     start_url: str,
-) -> tuple[List[Dict[str, str]], int, int]:
+    cursor,
+    folder_state: Dict[str, Dict[str, str]],
+) -> tuple[List[Dict[str, str]], int, int, int]:
     files: List[Dict[str, str]] = []
     entry_count = 0
     visited_dirs = set()
     seen_files = set()
+    skipped_dirs = 0
 
     start_path = normalize_dir_path(urlparse(start_url).path)
     visited_dirs.add(start_path)
@@ -136,6 +139,26 @@ def list_json_files_recursive(
             href_url = build_file_url(base_url, href)
             href_path = normalize_dir_path(urlparse(href_url).path)
             if item.get("is_collection"):
+                prev_state = folder_state.get(href_path)
+                etag = item.get("etag") or ""
+                last_modified = item.get("last_modified") or ""
+
+                if href_path != current_path and prev_state is not None:
+                    if prev_state.get("etag") == etag and prev_state.get("last_modified") == last_modified and (etag or last_modified):
+                        cursor.execute(
+                            "REPLACE INTO ingest_folder_state (path, etag, last_modified, scanned_at) VALUES (%s, %s, %s, NOW())",
+                            (href_path, etag, last_modified),
+                        )
+                        folder_state[href_path] = {"etag": etag, "last_modified": last_modified}
+                        skipped_dirs += 1
+                        continue
+
+                cursor.execute(
+                    "REPLACE INTO ingest_folder_state (path, etag, last_modified, scanned_at) VALUES (%s, %s, %s, NOW())",
+                    (href_path, etag, last_modified),
+                )
+                folder_state[href_path] = {"etag": etag, "last_modified": last_modified}
+
                 if href_path == current_path:
                     continue
                 if href_path not in visited_dirs:
@@ -149,7 +172,7 @@ def list_json_files_recursive(
                 seen_files.add(href)
                 files.append(item)
 
-    return files, entry_count, len(visited_dirs)
+    return files, entry_count, len(visited_dirs), skipped_dirs
 
 
 def parse_propfind(xml_text: str) -> List[Dict[str, str]]:
@@ -210,6 +233,31 @@ def ensure_state_table(cursor):
         )
         """
     )
+
+
+def ensure_folder_state_table(cursor):
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS ingest_folder_state (
+            path VARCHAR(512) PRIMARY KEY,
+            etag VARCHAR(255),
+            last_modified VARCHAR(255),
+            scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+
+
+def get_folder_state_map(cursor, base_path: str) -> Dict[str, Dict[str, str]]:
+    state = {}
+    like_pattern = f"{base_path}%"
+    cursor.execute(
+        "SELECT path, etag, last_modified FROM ingest_folder_state WHERE path LIKE %s",
+        (like_pattern,),
+    )
+    for path, etag, last_modified in cursor.fetchall():
+        state[path] = {"etag": etag or "", "last_modified": last_modified or ""}
+    return state
 
 
 def table_exists(cursor, table: str) -> bool:
@@ -378,19 +426,35 @@ def main():
         try:
             with conn.cursor() as cursor:
                 ensure_state_table(cursor)
+                ensure_folder_state_table(cursor)
                 conn.commit()
 
                 try:
-                    files, entry_count, dir_count = list_json_files_recursive(session, base_url, target_url)
+                    base_path = normalize_dir_path(urlparse(target_url).path)
+                    folder_state = get_folder_state_map(cursor, base_path)
+                    files, entry_count, dir_count, skipped_dirs = list_json_files_recursive(
+                        session,
+                        base_url,
+                        target_url,
+                        cursor,
+                        folder_state,
+                    )
                 except Exception:
                     logger.exception("WebDAV PROPFIND failed")
                     if args.once:
                         raise
                     time.sleep(cfg["poll_interval"])
                     continue
+                conn.commit()
                 paths = [f["href"] for f in files]
                 state_map = get_state_map(cursor, paths)
-                logger.info("Scan: %d entries across %d folders, %d json files", entry_count, dir_count, len(files))
+                logger.info(
+                    "Scan: %d entries across %d folders (%d skipped), %d json files",
+                    entry_count,
+                    dir_count,
+                    skipped_dirs,
+                    len(files),
+                )
 
                 for item in files:
                     href = item["href"]
