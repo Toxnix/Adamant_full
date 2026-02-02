@@ -1,10 +1,9 @@
-# <img src="https://raw.githubusercontent.com/csihda/adamant/6b2a50dff162b0fc7af0dc6873d7e9d34cfa93aa/src/assets/adamant-header-5.svg" alt="Adamant Logo" style="width:45%;"/> <img src="src/assets/EMPI_Logo_reactive-fluids_Color_Black.png" alt="EMPI-RF Logo" style="width:45%;"/>
-
 # SchemaFlow
 
 SchemaFlow is a JSON-Schema-based workflow for FAIR metadata in a Nextcloud + MariaDB environment.
 It lets you define metadata requirements as JSON Schema, collect validated metadata as JSON files, store them in Nextcloud,
-and ingest those files into MariaDB via WebDAV so metadata becomes queryable, filterable and exportable.
+store those metadata JSON files together with the measurement data they describe, and ingest the metadata into MariaDB via WebDAV
+so metadata becomes queryable, filterable and exportable (with a stable link back to the measurement data location).
 
 This project builds on upstream work at `https://github.com/plasma-mds/adamant`.
 
